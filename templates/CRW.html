@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Camera Records Cards</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Courier, monospace;
+            background: url("{{ url_for('static', filename='Photo Gauge.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        /* LEFT PANEL */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            background: #1F1F1F;
+            color: white;
+            padding: 30px 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .sidebar p {
+            font-size: 12px;
+            color: #ccc;
+            white-space: pre-line;
+        }
+
+        /* MAIN AREA */
+        .main {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        /* TITLE BOX */
+        .main-header-box {
+            background: rgba(0,0,0,0.6);
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .main-header {
+            color: white;
+            margin: 0;
+        }
+
+        /* CAMERA RECORD CARD */
+        .record-card {
+            display: flex;
+            background: rgba(42,42,42,0.85);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            color: white;
+            box-shadow: 0 3px 7px rgba(0,0,0,0.3);
+            min-height: 180px;
+            align-items: stretch;
+        }
+
+        .record-photo {
+            width: 150px;
+            height: 150px;
+            background: #222;
+            border-radius: 8px;
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #aaa;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .record-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .record-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .record-details {
+            margin-bottom: 10px;
+        }
+
+        .record-details p {
+            margin: 3px 0;
+            font-size: 14px;
+        }
+
+        .record-description textarea {
+            width: 100%;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #555;
+            color: white;
+            padding: 6px;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .record-date {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+
+        .card-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .card-buttons button {
+            font-size: 14px;
+            padding: 4px 6px;
+        }
+
+        .btn-dark-custom {
+            background: #343434;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-dark-custom:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Photo Gauge's<br>Camera Records</h2>
+    <p>
+A simple camera record dashboard
+for managing cameras visually.
+
+This Photo is Taken By:
+
+Lancelot Ishi C. Diniega
+Biñan Esplanade, Laguna
+    </p>
+</div>
+
+<div class="main">
+
+    <!-- TITLE BOX -->
+    <div class="main-header-box">
+        <h2 class="main-header">Camera Records Cards</h2>
+    </div>
+
+    <!-- CARDS -->
+    {% for cam in cameras %}
+    <div class="record-card">
+        <div class="record-photo">
+            {% if cam.photo %}
+                <img src="{{ url_for('static', filename=cam.photo) }}" alt="Camera Photo">
+            {% else %}
+                No Photo
+            {% endif %}
+        </div>
+
+        <div class="record-info">
+            <div class="record-details">
+                <p><strong>User:</strong> {{ cam.email }}</p>
+                <p><strong>Brand:</strong> {{ cam.CameraBrand }}</p>
+                <p><strong>Model:</strong> {{ cam.CameraModel }}</p>
+                <p><strong>Type:</strong> {{ cam.CameraType }}</p>
+            </div>
+
+            <!-- Description -->
+            <div class="record-description">
+                <form method="POST" action="{{ url_for('update_description', id=cam.id) }}">
+                    <textarea name="description" rows="2" placeholder="Type description here...">{{ cam.description if cam.description else '' }}</textarea>
+                    <button type="submit" class="btn btn-dark-custom btn-sm mt-1">💾 Save</button>
+                </form>
+                <div class="record-date">{{ cam.year_date }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- BOTTOM LEFT NAV BUTTONS -->
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 999; display: flex; gap: 10px;">
+    <a href="{{ url_for('register') }}" class="btn btn-dark-custom">
+        🔙 Back to Pager
