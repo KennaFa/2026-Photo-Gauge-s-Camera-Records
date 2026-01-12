@@ -8,7 +8,7 @@ DB_FILE = "cameralite3.db"
 UPLOAD_FOLDER = "static/uploads"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
-app = Flask(__name__)
+app = Flask(__app__)
 app.secret_key = "camera_secret_key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -216,4 +216,5 @@ def logout():
 
 # RUNNING IN THE 90s
 if __name__ == "__main__":
+
     app.run(debug=True)
