@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>About Me - Photo Gauge</title>
+    <link rel="stylesheet" href="style.css"> <!-- Keep your main CSS -->
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #1F1F1F;
+            color: #CCCCCC;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2A2A2A;
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+        header img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+        header h1 {
+            margin: 10px 0;
+            font-size: 26px;
+        }
+        header p {
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 700px;
+            margin: 0 auto 10px auto;
+        }
+        header a {
+            color: #1E90FF;
+            text-decoration: none;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px 40px;
+            background-color: #2A2A2A;
+        }
+        .photo-grid img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border: 2px solid #343434;
+            border-radius: 6px;
+            transition: transform 0.2s;
+        }
+        .photo-grid img:hover {
+            transform: scale(1.05);
+            border-color: #1E90FF;
+        }
+        .return-btn {
+            display: block;
+            width: 150px;
+            margin: 20px auto;
+            padding: 10px 0;
+            background-color: #343434;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .return-btn:hover {
+            background-color: #1E90FF;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="PGPFP.jpg" alt="Profile Picture">
+    <h1>About Me</h1>
+    <p>
+        Greetings to you all, visitors. My name is <strong>Lancelot Ishi Corpuz Diniega</strong>, and I am a photographer.
+        I created this website and this About Me page to see my mesmerizing, astonishing photographs I took for years of progress
+        and I am proud to make this website for my self-introduction. I am gladly to improve this website whatever I pleased,
+        also follow my FB page down below. Thank you c:
+    </p>
+    <p>~Oishi,</p>
+    <p><a href="https://www.facebook.com/profile.php?id=100088582924780&mibextid=ZbWKwL" target="_blank">My Facebook Page</a></p>
+</header>
+
+<section class="photo-grid">
+    <!-- Photo thumbnails will go here -->
+    <!-- Example format:
+    <img src="Photo Gauge photos/photo1.jpg" alt="Photo 1">
+    -->
+</section>
+
+<a href="index.html" class="return-btn">Return to Main</a>
+
+<script>
+    // Automatically load all images from folder (works if you pre-upload them)
+    const folder = "Photo Gauge photos/";
+    const photoGrid = document.querySelector(".photo-grid");
+
+    // You need to manually list the files here (or generate them server-side)
+    const photos = [
+        "photo1.jpg",
+        "photo2.jpg",
+        "photo3.jpg"
+        // add all your photos
+    ];
+
+    photos.forEach(file => {
+        const img = document.createElement("img");
+        img.src = folder + file;
+        img.alt = file;
+        photoGrid.appendChild(img);
+    });
+</script>
+
+</body>
+</html>
