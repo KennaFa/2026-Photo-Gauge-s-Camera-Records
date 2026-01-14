@@ -1,135 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Camera Records Cards</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<meta charset="UTF-8">
+<title>Camera Records BoardView</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Courier, monospace;
-            background: url("{{ url_for('static', filename='Photo Gauge.jpg') }}") no-repeat center center fixed;
-            background-size: cover;
-        }
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: url("{{ url_for('static', filename='Photo Gauge.jpg') }}") no-repeat center center fixed;
+        background-size: cover;
+        color: white;
+    }
 
-        .sidebar {
-            position: fixed; top: 0; left: 0; width: 260px; height: 100vh;
-            background: #1F1F1F; color: white; padding: 30px 20px;
-        }
-        .sidebar h2 { font-size: 22px; font-weight: bold; }
-        .sidebar p { font-size: 12px; color: #ccc; white-space: pre-line; }
+    .overlay {
+        background: rgba(0,0,0,0.75);
+        min-height: 100vh;
+        padding: 20px;
+    }
 
-        .main { margin-left: 260px; padding: 30px; }
+    h1 {
+        text-align: center;
+        background: #111;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px black;
+    }
 
-        /* TITLE BOX */
-        .main-header-box {
-            background: rgba(0,0,0,0.6); padding: 15px 20px;
-            border-radius: 8px; text-align: center; margin-bottom: 30px;
-        }
-        .main-header { color: white; margin: 0; }
+    .cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+        margin-top: 20px;
+    }
 
-        /* CAMERA RECORD CARD */
-        .record-card {
-            display: flex; background: rgba(42,42,42,0.85);
-            border-radius: 10px; margin-bottom: 20px; padding: 15px;
-            color: white; box-shadow: 0 3px 7px rgba(0,0,0,0.3);
-            min-height: 180px; align-items: stretch;
-        }
+    .card {
+        background: rgba(20,20,20,0.9);
+        padding: 15px;
+        width: 280px;
+        border-radius: 12px;
+        box-shadow: 0 0 12px black;
+    }
 
-        .record-photo {
-            width: 150px; height: 150px; background: #222;
-            border-radius: 8px; margin-right: 20px; display: flex;
-            align-items: center; justify-content: center;
-            font-size: 12px; color: #aaa; overflow: hidden;
-            flex-shrink: 0;
-        }
+    img {
+        width: 100%;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
 
-        .record-info {
-            flex: 1; display: flex; flex-direction: column; justify-content: space-between;
-        }
+    textarea {
+        width: 100%;
+        border-radius: 6px;
+        padding: 5px;
+        background: #111;
+        color: white;
+        border: 1px solid gray;
+    }
 
-        .record-details p { margin: 3px 0; font-size: 14px; }
-        .record-description textarea {
-            width: 100%; border-radius: 6px; background: rgba(0,0,0,0.5);
-            border: 1px solid #555; color: white; padding: 6px; font-size: 13px; resize: vertical;
-        }
-        .record-date { font-size: 12px; color: #ccc; margin-top: 5px; }
+    button {
+        margin-top: 8px;
+        width: 100%;
+        padding: 7px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        background: cyan;
+        font-weight: bold;
+    }
 
-        .card-buttons { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
-        .card-buttons button { font-size: 14px; padding: 4px 6px; }
-        .btn-dark-custom { background: #343434; color: white; font-weight: bold; }
-        .btn-dark-custom:hover { background: #555; }
-    </style>
+    button:hover {
+        background: #00bebe;
+    }
+
+    a {
+        color: cyan;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .top {
+        margin-bottom: 15px;
+    }
+</style>
 </head>
+
 <body>
+<div class="overlay">
 
-<div class="sidebar">
-    <h2>Photo Gauge's<br>Camera Records</h2>
-    <p>
-A simple camera record dashboard
-for managing cameras visually.
-
-This Photo is Taken By:
-
-Lancelot Ishi C. Diniega
-Biñan Esplanade, Laguna
-    </p>
+<div class="top">
+    <a href="{{ url_for('register') }}">⬅ Back to Pager</a>
 </div>
 
-<div class="main">
+<h1>📷 Camera Records BoardView</h1>
 
-    <!-- TITLE BOX -->
-    <div class="main-header-box">
-        <h2 class="main-header">Camera Records Cards</h2>
-    </div>
+<div class="cards">
 
-    <!-- CARDS -->
-    {% for cam in cameras %}
-    <div class="record-card">
+{% for camera in cameras %}
+<div class="card">
 
-        <!-- PHOTO -->
-        <div class="record-photo">
-            {% if cam.photo %}
-                <img src="{{ url_for('static', filename='photos/' + cam.photo) }}" alt="Camera Photo"
-                     style="width:100%; height:100%; object-fit:cover;">
-            {% else %}
-                No Photo
-            {% endif %}
-        </div>
+    <h3>{{ camera['CameraBrand'] }} {{ camera['CameraModel'] }}</h3>
+    <p>Type: {{ camera['CameraType'] }}</p>
+    <p>Email: {{ camera['email'] }}</p>
+    <p>Date: {{ camera['year_date'] }}</p>
 
-        <!-- INFO & DESCRIPTION -->
-        <div class="record-info">
+    {% if camera['photo'] %}
+        <img src="{{ url_for('static', filename=camera['photo']) }}">
+    {% else %}
+        <p><i>No photo</i></p>
+    {% endif %}
 
-            <!-- Camera info -->
-            <div class="record-details">
-                <p><strong>User:</strong> {{ cam.email }}</p>
-                <p><strong>Brand:</strong> {{ cam.CameraBrand }}</p>
-                <p><strong>Model:</strong> {{ cam.CameraModel }}</p>
-                <p><strong>Type:</strong> {{ cam.CameraType }}</p>
-            </div>
+    <form method="POST" action="{{ url_for('update_description', id=camera['id']) }}">
+        <p>Description:</p>
+        <textarea name="description" rows="4">{{ camera['description'] }}</textarea>
+        <button type="submit">Save</button>
+    </form>
 
-            <!-- Description form -->
-            <div class="record-description">
-                <form method="POST" action="{{ url_for('update_description', id=cam.id) }}">
-                    <textarea name="description" rows="2" placeholder="Type description here...">{{ cam.description if cam.description else '' }}</textarea>
-                    <button type="submit" class="btn btn-dark-custom btn-sm mt-1">💾 Save</button>
-                </form>
-                <div class="record-date">{{ cam.year_date }}</div>
-            </div>
+</div>
+{% endfor %}
 
-            <!-- Buttons -->
-            <div class="card-buttons">
-                <button class="btn btn-dark-custom btn-sm">📷 Add</button>
-                <button class="btn btn-dark-custom btn-sm">📷 ✅ Checked</button>
-                <button class="btn btn-dark-custom btn-sm">📷 🔧 SIS</button>
-                <button class="btn btn-dark-custom btn-sm">📷 🗑️ Delete</button>
-            </div>
-
-        </div>
-    </div>
-    {% endfor %}
-
+</div>
 </div>
 </body>
 </html>
