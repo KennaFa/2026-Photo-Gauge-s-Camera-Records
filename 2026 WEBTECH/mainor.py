@@ -3,15 +3,14 @@ import sqlite3
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
-import logging
+import shutil
 
 # ================================
-# CONFIG
+# CONFIGURATION
 # ================================
-logging.basicConfig(level=logging.DEBUG)
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "cameralite3.db")
+TMP_DIR = "/tmp"  # Render writable folder
+DB_FILE = os.path.join(TMP_DIR, "cameralite3.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
@@ -21,6 +20,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(TMP_DIR, exist_ok=True)
 
 # ================================
 # DATABASE FUNCTIONS
@@ -31,6 +31,12 @@ def create_connection():
     return conn
 
 def initialize_database():
+    """Create the cameras table if it doesn't exist."""
+    if not os.path.exists(DB_FILE):
+        local_db = os.path.join(BASE_DIR, "cameralite3.db")
+        if os.path.exists(local_db):
+            shutil.copy(local_db, DB_FILE)
+
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -49,22 +55,22 @@ def initialize_database():
     conn.close()
 
 def migrate_database():
+    """Add photo column if it doesn't exist."""
     conn = create_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("ALTER TABLE cameras ADD COLUMN photo TEXT DEFAULT NULL")
-        print("Column 'photo' added successfully!")
     except sqlite3.OperationalError:
-        print("Column 'photo' already exists.")
+        pass  # column already exists
     conn.commit()
     conn.close()
 
-# Initialize DB
+# Initialize DB at startup
 initialize_database()
 migrate_database()
 
 # ================================
-# HELPER FUNCTIONS
+# HELPERS
 # ================================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -99,7 +105,6 @@ def login():
             flash("Invalid Email or Date", "danger")
 
     return render_template("login.html")
-
 
 # REGISTER / MAIN PAGE (ADD OR EDIT CAMERA)
 @app.route("/rgstr", methods=["GET", "POST"])
@@ -164,8 +169,7 @@ def register():
 
     return render_template("pager.html", cameras=cameras, edit=None)
 
-
-# EDIT CAMERA
+# EDIT CAMERA (LOGIN REQUIRED)
 @app.route("/edit/<int:id>")
 def edit_camera(id):
     if "user_email" not in session:
@@ -179,8 +183,7 @@ def edit_camera(id):
 
     return render_template("pager.html", cameras=cameras, edit=edit)
 
-
-# DELETE CAMERA
+# DELETE CAMERA (LOGIN REQUIRED)
 @app.route("/delete/<int:id>")
 def delete_camera(id):
     if "user_email" not in session:
@@ -195,7 +198,6 @@ def delete_camera(id):
     flash("Camera deleted successfully!", "success")
     return redirect(url_for("register"))
 
-
 # CARDS VIEW
 @app.route("/CRW")
 def cards_view():
@@ -204,18 +206,20 @@ def cards_view():
     conn.close()
     return render_template("CRW.html", cameras=cameras)
 
-
 # UPDATE DESCRIPTION
 @app.route("/update_description/<int:id>", methods=["POST"])
 def update_description(id):
     new_desc = request.form.get("description", "")
     conn = create_connection()
-    conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
-    conn.commit()
-    conn.close()
-    flash("Description updated!", "success")
+    try:
+        conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
+        conn.commit()
+        flash("Description updated!", "success")
+    except Exception as e:
+        flash(f"Error updating description: {e}", "danger")
+    finally:
+        conn.close()
     return redirect(url_for("cards_view"))
-
 
 # LOGOUT
 @app.route("/logout")
@@ -223,7 +227,6 @@ def logout():
     session.pop("user_email", None)
     flash("Logged out successfully", "success")
     return redirect(url_for("login"))
-
 
 # ================================
 # RUN APP
