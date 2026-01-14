@@ -15,73 +15,98 @@
     }
 
     .overlay {
-        background: rgba(0,0,0,0.75);
+        background: rgba(0,0,0,0.78);
         min-height: 100vh;
         padding: 20px;
     }
 
     h1 {
         text-align: center;
-        background: #111;
-        padding: 12px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px black;
+        background: linear-gradient(135deg, #000, #222);
+        padding: 14px;
+        border-radius: 12px;
+        box-shadow: 0 0 15px black;
+        letter-spacing: 1px;
+    }
+
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .topbar a {
+        color: cyan;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 15px;
     }
 
     .cards {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 20px;
-        justify-content: center;
         margin-top: 20px;
     }
 
     .card {
-        background: rgba(20,20,20,0.9);
+        background: rgba(15,15,15,0.92);
         padding: 15px;
-        width: 280px;
-        border-radius: 12px;
-        box-shadow: 0 0 12px black;
+        border-radius: 14px;
+        box-shadow: 0 0 15px black;
+        transition: 0.2s;
+    }
+
+    .card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 20px black;
     }
 
     img {
         width: 100%;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-top: 10px;
+        box-shadow: 0 0 10px black;
+    }
+
+    .meta {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-bottom: 4px;
     }
 
     textarea {
         width: 100%;
-        border-radius: 6px;
-        padding: 5px;
-        background: #111;
+        border-radius: 8px;
+        padding: 8px;
+        background: #0f0f0f;
         color: white;
-        border: 1px solid gray;
+        border: 1px solid #555;
+        resize: vertical;
     }
 
     button {
         margin-top: 8px;
         width: 100%;
-        padding: 7px;
-        border-radius: 6px;
+        padding: 9px;
+        border-radius: 8px;
         border: none;
         cursor: pointer;
-        background: cyan;
+        background: linear-gradient(135deg, cyan, #00aaff);
         font-weight: bold;
+        letter-spacing: 0.5px;
     }
 
     button:hover {
-        background: #00bebe;
+        opacity: 0.85;
     }
 
-    a {
-        color: cyan;
-        text-decoration: none;
-        font-weight: bold;
-    }
-
-    .top {
-        margin-bottom: 15px;
+    .footer {
+        text-align: center;
+        margin-top: 40px;
+        opacity: 0.6;
+        font-size: 13px;
     }
 </style>
 </head>
@@ -89,8 +114,9 @@
 <body>
 <div class="overlay">
 
-<div class="top">
-    <a href="{{ url_for('register') }}">⬅ Back to Pager</a>
+<div class="topbar">
+    <a href="{{ url_for('register') }}">⬅ Back to Register</a>
+    <div>CRW BoardView</div>
 </div>
 
 <h1>📷 Camera Records BoardView</h1>
@@ -101,26 +127,33 @@
 <div class="card">
 
     <h3>{{ camera['CameraBrand'] }} {{ camera['CameraModel'] }}</h3>
-    <p>Type: {{ camera['CameraType'] }}</p>
-    <p>Email: {{ camera['email'] }}</p>
-    <p>Date: {{ camera['year_date'] }}</p>
+
+    <div class="meta">Type: {{ camera['CameraType'] }}</div>
+    <div class="meta">Email: {{ camera['email'] }}</div>
+    <div class="meta">Date: {{ camera['year_date'] }}</div>
 
     {% if camera['photo'] %}
         <img src="{{ url_for('static', filename=camera['photo']) }}">
     {% else %}
-        <p><i>No photo</i></p>
+        <p><i>No photo uploaded</i></p>
     {% endif %}
 
     <form method="POST" action="{{ url_for('update_description', id=camera['id']) }}">
-        <p>Description:</p>
+        <p><b>Description:</b></p>
         <textarea name="description" rows="4">{{ camera['description'] }}</textarea>
-        <button type="submit">Save</button>
+        <button type="submit">Save Description</button>
     </form>
 
 </div>
 {% endfor %}
 
 </div>
+
+<div class="footer">
+    Camera Records Web • BoardView Module
+</div>
+
 </div>
 </body>
 </html>
+
