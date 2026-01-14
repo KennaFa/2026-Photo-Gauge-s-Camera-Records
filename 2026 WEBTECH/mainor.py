@@ -3,14 +3,15 @@ import sqlite3
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
+import logging
 
 # ================================
-# CONFIGURE ARTS
+# CONFIG
 # ================================
+logging.basicConfig(level=logging.DEBUG)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Use /tmp for DB on Render so write permissions exist
-DB_FILE = os.path.join("/tmp", "cameralite3.db")
+DB_FILE = os.path.join(BASE_DIR, "cameralite3.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
@@ -22,7 +23,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ================================
-# DB FUNC
+# DATABASE FUNCTIONS
 # ================================
 def create_connection():
     conn = sqlite3.connect(DB_FILE)
@@ -30,7 +31,6 @@ def create_connection():
     return conn
 
 def initialize_database():
-    """Create the cameras table if it doesn't exist."""
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -49,7 +49,6 @@ def initialize_database():
     conn.close()
 
 def migrate_database():
-    """Add the 'photo' column if it doesn't exist."""
     conn = create_connection()
     cursor = conn.cursor()
     try:
@@ -60,12 +59,12 @@ def migrate_database():
     conn.commit()
     conn.close()
 
-# Initialize DB and run migrations
+# Initialize DB
 initialize_database()
 migrate_database()
 
 # ================================
-# HELP FUNC
+# HELPER FUNCTIONS
 # ================================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -73,6 +72,8 @@ def allowed_file(filename):
 # ================================
 # ROUTES
 # ================================
+
+# LOGIN PAGE
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -100,6 +101,7 @@ def login():
     return render_template("login.html")
 
 
+# REGISTER / MAIN PAGE (ADD OR EDIT CAMERA)
 @app.route("/rgstr", methods=["GET", "POST"])
 def register():
     conn = create_connection()
@@ -130,7 +132,7 @@ def register():
 
         cursor = conn.cursor()
 
-        if cid:  # edit existing record
+        if cid:  # edit
             if "user_email" not in session:
                 flash("Login required to edit records", "danger")
                 return redirect(url_for("login"))
@@ -148,7 +150,7 @@ def register():
                     WHERE id=?
                 """, (brand, model, ctype, email, date, cid))
             flash("Camera updated successfully!", "success")
-        else:  # add new record
+        else:  # add new
             cursor.execute("""
                 INSERT INTO cameras (CameraBrand, CameraModel, CameraType, email, year_date, photo)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -159,9 +161,11 @@ def register():
 
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
+
     return render_template("pager.html", cameras=cameras, edit=None)
 
 
+# EDIT CAMERA
 @app.route("/edit/<int:id>")
 def edit_camera(id):
     if "user_email" not in session:
@@ -172,9 +176,11 @@ def edit_camera(id):
     edit = conn.execute("SELECT * FROM cameras WHERE id=?", (id,)).fetchone()
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
+
     return render_template("pager.html", cameras=cameras, edit=edit)
 
 
+# DELETE CAMERA
 @app.route("/delete/<int:id>")
 def delete_camera(id):
     if "user_email" not in session:
@@ -185,10 +191,12 @@ def delete_camera(id):
     conn.execute("DELETE FROM cameras WHERE id=?", (id,))
     conn.commit()
     conn.close()
+
     flash("Camera deleted successfully!", "success")
     return redirect(url_for("register"))
 
 
+# CARDS VIEW
 @app.route("/CRW")
 def cards_view():
     conn = create_connection()
@@ -197,6 +205,7 @@ def cards_view():
     return render_template("CRW.html", cameras=cameras)
 
 
+# UPDATE DESCRIPTION
 @app.route("/update_description/<int:id>", methods=["POST"])
 def update_description(id):
     new_desc = request.form.get("description", "")
@@ -208,6 +217,7 @@ def update_description(id):
     return redirect(url_for("cards_view"))
 
 
+# LOGOUT
 @app.route("/logout")
 def logout():
     session.pop("user_email", None)
@@ -216,8 +226,7 @@ def logout():
 
 
 # ================================
-# RUNNING IN THE 90s
+# RUN APP
 # ================================
 if __name__ == "__main__":
-    # debug=True is ok on Render for initial testing
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
