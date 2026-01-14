@@ -1,3 +1,15 @@
+Where am i goin to paste this?
+
+Flask==3.1.2
+gunicorn==23.0.0
+Werkzeug==3.1.5
+Jinja2==3.1.6
+click==8.3.1
+itsdangerous==2.2.0
+MarkupSafe==3.0.3
+Pillow==12.1.0
+
+Also is this now fixed?
 from flask import Flask, request, redirect, render_template, flash, url_for, session
 import sqlite3
 from datetime import datetime
@@ -5,238 +17,254 @@ import os
 from werkzeug.utils import secure_filename
 import shutil
 
-# ================================
-# CONFIGURATION
-# ================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TMP_DB = os.path.join("/tmp", "cameralite3.db")  # Render writable folder
+================================
+
+CONFIGURATION
+
+================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(file))
+TMP_DIR = "/tmp"  # Render writable folder
+DB_FILE = os.path.join(TMP_DIR, "cameralite3.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
-app = Flask(__name__)
+app = Flask(name)
 app.secret_key = "camera_secret_key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Ensure folders exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs("/tmp", exist_ok=True)
+Ensure upload folder exists
 
-# ================================
-# DATABASE FUNCTIONS
-# ================================
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(TMP_DIR, exist_ok=True)
+
+================================
+
+DATABASE FUNCTIONS
+
+================================
+
 def create_connection():
-    if not os.path.exists(TMP_DB):
-        raise RuntimeError("Database not found!")
-    conn = sqlite3.connect(TMP_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+conn = sqlite3.connect(DB_FILE)
+conn.row_factory = sqlite3.Row
+return conn
 
 def initialize_database():
-    """Create the cameras table if it doesn't exist."""
-    if not os.path.exists(TMP_DB):
-        local_db = os.path.join(BASE_DIR, "cameralite3.db")
-        if os.path.exists(local_db):
-            shutil.copy(local_db, TMP_DB)
-        else:
-            conn = sqlite3.connect(TMP_DB)
-            conn.execute("""
-                CREATE TABLE cameras (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    CameraBrand TEXT NOT NULL,
-                    CameraModel TEXT NOT NULL,
-                    CameraType TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    year_date TEXT NOT NULL,
-                    description TEXT DEFAULT '',
-                    photo TEXT DEFAULT NULL
-                )
-            """)
-            conn.commit()
-            conn.close()
+"""Create the cameras table if it doesn't exist."""
+if not os.path.exists(DB_FILE):
+local_db = os.path.join(BASE_DIR, "cameralite3.db")
+if os.path.exists(local_db):
+shutil.copy(local_db, DB_FILE)
+
+conn = create_connection()  
+cursor = conn.cursor()  
+cursor.execute("""  
+    CREATE TABLE IF NOT EXISTS cameras (  
+        id INTEGER PRIMARY KEY AUTOINCREMENT,  
+        CameraBrand TEXT NOT NULL,  
+        CameraModel TEXT NOT NULL,  
+        CameraType TEXT NOT NULL,  
+        email TEXT NOT NULL,  
+        year_date TEXT NOT NULL,  
+        description TEXT DEFAULT '',  
+        photo TEXT DEFAULT NULL  
+    )  
+""")  
+conn.commit()  
+conn.close()
 
 def migrate_database():
-    """Add photo column if missing."""
-    conn = create_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE cameras ADD COLUMN photo TEXT DEFAULT NULL")
-    except sqlite3.OperationalError:
-        pass  # column already exists
-    conn.commit()
-    conn.close()
+"""Add photo column if it doesn't exist."""
+conn = create_connection()
+cursor = conn.cursor()
+try:
+cursor.execute("ALTER TABLE cameras ADD COLUMN photo TEXT DEFAULT NULL")
+except sqlite3.OperationalError:
+pass  # column already exists
+conn.commit()
+conn.close()
 
-# Initialize DB
+Initialize DB at startup
+
 initialize_database()
 migrate_database()
 
-# ================================
-# HELPERS
-# ================================
+================================
+
+HELPERS
+
+================================
+
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ================================
-# ROUTES
-# ================================
+================================
 
-# LOGIN PAGE
+ROUTES
+
+================================
+
+LOGIN PAGE
+
 @app.route("/", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        email = request.form.get("email")
-        year_date = request.form.get("year_date")
+if request.method == "POST":
+email = request.form.get("email")
+year_date = request.form.get("year_date")
 
-        if not email or not year_date:
-            flash("Please enter Email and Date", "danger")
-            return redirect(url_for("login"))
+if not email or not year_date:  
+        flash("Please enter Email and Date", "danger")  
+        return redirect(url_for("login"))  
 
-        conn = create_connection()
-        user = conn.execute(
-            "SELECT * FROM cameras WHERE email=? AND year_date=?",
-            (email, year_date)
-        ).fetchone()
-        conn.close()
+    conn = create_connection()  
+    user = conn.execute(  
+        "SELECT * FROM cameras WHERE email=? AND year_date=?",  
+        (email, year_date)  
+    ).fetchone()  
+    conn.close()  
 
-        if user:
-            session["user_email"] = email
-            flash("Login successful!", "success")
-            return redirect(url_for("register"))
-        else:
-            flash("Invalid Email or Date", "danger")
+    if user:  
+        session["user_email"] = email  
+        flash("Login successful!", "success")  
+        return redirect(url_for("register"))  
+    else:  
+        flash("Invalid Email or Date", "danger")  
 
-    return render_template("login.html")
+return render_template("login.html")
 
+REGISTER / MAIN PAGE (ADD OR EDIT CAMERA)
 
-# REGISTER / MAIN PAGE
 @app.route("/rgstr", methods=["GET", "POST"])
 def register():
-    conn = create_connection()
-    if request.method == "POST":
-        cid = request.form.get("id")
-        brand = request.form.get("CameraBrand")
-        model = request.form.get("CameraModel")
-        ctype = request.form.get("CameraType")
-        email = request.form.get("email")
-        date = request.form.get("year_date")
-        file = request.files.get("photo")
+conn = create_connection()
+if request.method == "POST":
+cid = request.form.get("id")
+brand = request.form.get("CameraBrand")
+model = request.form.get("CameraModel")
+ctype = request.form.get("CameraType")
+email = request.form.get("email")
+date = request.form.get("year_date")
+file = request.files.get("photo")
 
-        photo_filename = None
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            photo_filename = f"uploads/{filename}"
+photo_filename = None  
+    if file and allowed_file(file.filename):  
+        filename = secure_filename(file.filename)  
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))  
+        photo_filename = f"uploads/{filename}"  
 
-        if not all([brand, model, ctype, email, date]):
-            flash("All fields are required!", "danger")
-            return redirect(url_for("register"))
+    if not all([brand, model, ctype, email, date]):  
+        flash("All fields are required!", "danger")  
+        return redirect(url_for("register"))  
 
-        try:
-            datetime.strptime(date, "%Y-%m-%d")
-        except ValueError:
-            flash("Date must be YYYY-MM-DD", "danger")
-            return redirect(url_for("register"))
+    try:  
+        datetime.strptime(date, "%Y-%m-%d")  
+    except ValueError:  
+        flash("Date must be YYYY-MM-DD", "danger")  
+        return redirect(url_for("register"))  
 
-        cursor = conn.cursor()
-        if cid:  # edit
-            if "user_email" not in session:
-                flash("Login required to edit records", "danger")
-                return redirect(url_for("login"))
-            if photo_filename:
-                cursor.execute("""
-                    UPDATE cameras
-                    SET CameraBrand=?, CameraModel=?, CameraType=?, email=?, year_date=?, photo=?
-                    WHERE id=?
-                """, (brand, model, ctype, email, date, photo_filename, cid))
-            else:
-                cursor.execute("""
-                    UPDATE cameras
-                    SET CameraBrand=?, CameraModel=?, CameraType=?, email=?, year_date=?
-                    WHERE id=?
-                """, (brand, model, ctype, email, date, cid))
-            flash("Camera updated successfully!", "success")
-        else:  # add new
-            cursor.execute("""
-                INSERT INTO cameras (CameraBrand, CameraModel, CameraType, email, year_date, photo)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (brand, model, ctype, email, date, photo_filename))
-            flash("Camera added successfully!", "success")
+    cursor = conn.cursor()  
 
-        conn.commit()
+    if cid:  # edit  
+        if "user_email" not in session:  
+            flash("Login required to edit records", "danger")  
+            return redirect(url_for("login"))  
 
-    cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
-    conn.close()
-    return render_template("pager.html", cameras=cameras, edit=None)
+        if photo_filename:  
+            cursor.execute("""  
+                UPDATE cameras  
+                SET CameraBrand=?, CameraModel=?, CameraType=?, email=?, year_date=?, photo=?  
+                WHERE id=?  
+            """, (brand, model, ctype, email, date, photo_filename, cid))  
+        else:  
+            cursor.execute("""  
+                UPDATE cameras  
+                SET CameraBrand=?, CameraModel=?, CameraType=?, email=?, year_date=?  
+                WHERE id=?  
+            """, (brand, model, ctype, email, date, cid))  
+        flash("Camera updated successfully!", "success")  
+    else:  # add new  
+        cursor.execute("""  
+            INSERT INTO cameras (CameraBrand, CameraModel, CameraType, email, year_date, photo)  
+            VALUES (?, ?, ?, ?, ?, ?)  
+        """, (brand, model, ctype, email, date, photo_filename))  
+        flash("Camera added successfully!", "success")  
 
+    conn.commit()  
 
-# EDIT CAMERA
-@app.route("/edit/<int:id>")
+cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()  
+conn.close()  
+
+return render_template("pager.html", cameras=cameras, edit=None)
+
+EDIT CAMERA (LOGIN REQUIRED)
+
+@app.route("/edit/int:id")
 def edit_camera(id):
-    if "user_email" not in session:
-        flash("Login required to edit records", "danger")
-        return redirect(url_for("login"))
+if "user_email" not in session:
+flash("Login required to edit records", "danger")
+return redirect(url_for("login"))
 
-    conn = create_connection()
-    edit = conn.execute("SELECT * FROM cameras WHERE id=?", (id,)).fetchone()
-    cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
-    conn.close()
-    return render_template("pager.html", cameras=cameras, edit=edit)
+conn = create_connection()  
+edit = conn.execute("SELECT * FROM cameras WHERE id=?", (id,)).fetchone()  
+cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()  
+conn.close()  
 
+return render_template("pager.html", cameras=cameras, edit=edit)
 
-# DELETE CAMERA
-@app.route("/delete/<int:id>")
+DELETE CAMERA (LOGIN REQUIRED)
+
+@app.route("/delete/int:id")
 def delete_camera(id):
-    if "user_email" not in session:
-        flash("Login required to delete records", "danger")
-        return redirect(url_for("login"))
+if "user_email" not in session:
+flash("Login required to delete records", "danger")
+return redirect(url_for("login"))
 
-    conn = create_connection()
-    conn.execute("DELETE FROM cameras WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
-    flash("Camera deleted successfully!", "success")
-    return redirect(url_for("register"))
+conn = create_connection()  
+conn.execute("DELETE FROM cameras WHERE id=?", (id,))  
+conn.commit()  
+conn.close()  
 
+flash("Camera deleted successfully!", "success")  
+return redirect(url_for("register"))
 
-# CARDS VIEW
+CARDS VIEW
+
 @app.route("/CRW")
 def cards_view():
-    conn = create_connection()
-    cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
-    conn.close()
-    return render_template("CRW.html", cameras=cameras)
+conn = create_connection()
+cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
+conn.close()
+return render_template("CRW.html", cameras=cameras)
 
+UPDATE DESCRIPTION
 
-# UPDATE DESCRIPTION
-@app.route("/update_description/<int:id>", methods=["POST"])
+@app.route("/update_description/int:id", methods=["POST"])
 def update_description(id):
-    new_desc = request.form.get("description", "").strip()
-    if not new_desc:
-        flash("Description cannot be empty!", "danger")
-        return redirect(url_for("cards_view"))
+new_desc = request.form.get("description", "")
+conn = create_connection()
+try:
+conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
+conn.commit()
+flash("Description updated!", "success")
+except Exception as e:
+flash(f"Error updating description: {e}", "danger")
+finally:
+conn.close()
+return redirect(url_for("cards_view"))
 
-    try:
-        conn = create_connection()
-        conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
-        conn.commit()
-        flash("Description updated!", "success")
-    except Exception as e:
-        flash(f"Internal Server Error: {e}", "danger")
-    finally:
-        conn.close()
+LOGOUT
 
-    return redirect(url_for("cards_view"))
-
-
-# LOGOUT
 @app.route("/logout")
 def logout():
-    session.pop("user_email", None)
-    flash("Logged out successfully", "success")
-    return redirect(url_for("login"))
+session.pop("user_email", None)
+flash("Logged out successfully", "success")
+return redirect(url_for("login"))
 
+================================
 
-# ================================
-# RUN APP
-# ================================
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+RUN APP
+
+================================
+
+if name == "main":
+app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
