@@ -4,11 +4,13 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 
-# ----------------------------
+# ================================
 # CONFIGURE ARTS
-# ----------------------------
+# ================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "cameralite3.db")
+
+# Use /tmp for DB on Render so write permissions exist
+DB_FILE = os.path.join("/tmp", "cameralite3.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
@@ -16,21 +18,21 @@ app = Flask(__name__)
 app.secret_key = "camera_secret_key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Make sure upload folder exists
+# Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ----------------------------
-# DB UTILS
-# ----------------------------
+# ================================
+# DB FUNC
+# ================================
 def create_connection():
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
 
 def initialize_database():
+    """Create the cameras table if it doesn't exist."""
     conn = create_connection()
     cursor = conn.cursor()
-    # Create table if not exists
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cameras (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,30 +49,30 @@ def initialize_database():
     conn.close()
 
 def migrate_database():
-    """Safely add 'photo' column if it doesn't exist yet"""
+    """Add the 'photo' column if it doesn't exist."""
     conn = create_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("ALTER TABLE cameras ADD COLUMN photo TEXT DEFAULT NULL")
+        print("Column 'photo' added successfully!")
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        print("Column 'photo' already exists.")
     conn.commit()
     conn.close()
 
-# Run database setup
+# Initialize DB and run migrations
 initialize_database()
 migrate_database()
 
-# ----------------------------
+# ================================
 # HELP FUNC
-# ----------------------------
+# ================================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ----------------------------
+# ================================
 # ROUTES
-# ----------------------------
-# LOGIN
+# ================================
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -97,7 +99,7 @@ def login():
 
     return render_template("login.html")
 
-# REGISTER / MAIN PAGE
+
 @app.route("/rgstr", methods=["GET", "POST"])
 def register():
     conn = create_connection()
@@ -128,7 +130,7 @@ def register():
 
         cursor = conn.cursor()
 
-        if cid:  # edit
+        if cid:  # edit existing record
             if "user_email" not in session:
                 flash("Login required to edit records", "danger")
                 return redirect(url_for("login"))
@@ -146,7 +148,7 @@ def register():
                     WHERE id=?
                 """, (brand, model, ctype, email, date, cid))
             flash("Camera updated successfully!", "success")
-        else:  # add new
+        else:  # add new record
             cursor.execute("""
                 INSERT INTO cameras (CameraBrand, CameraModel, CameraType, email, year_date, photo)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -157,10 +159,9 @@ def register():
 
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
-
     return render_template("pager.html", cameras=cameras, edit=None)
 
-# EDIT CAMERA
+
 @app.route("/edit/<int:id>")
 def edit_camera(id):
     if "user_email" not in session:
@@ -171,10 +172,9 @@ def edit_camera(id):
     edit = conn.execute("SELECT * FROM cameras WHERE id=?", (id,)).fetchone()
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
-
     return render_template("pager.html", cameras=cameras, edit=edit)
 
-# DELETE CAMERA
+
 @app.route("/delete/<int:id>")
 def delete_camera(id):
     if "user_email" not in session:
@@ -185,11 +185,10 @@ def delete_camera(id):
     conn.execute("DELETE FROM cameras WHERE id=?", (id,))
     conn.commit()
     conn.close()
-
     flash("Camera deleted successfully!", "success")
     return redirect(url_for("register"))
 
-# CARDS VIEW
+
 @app.route("/CRW")
 def cards_view():
     conn = create_connection()
@@ -197,7 +196,7 @@ def cards_view():
     conn.close()
     return render_template("CRW.html", cameras=cameras)
 
-# UPDATE DESCRIPTION
+
 @app.route("/update_description/<int:id>", methods=["POST"])
 def update_description(id):
     new_desc = request.form.get("description", "")
@@ -208,15 +207,17 @@ def update_description(id):
     flash("Description updated!", "success")
     return redirect(url_for("cards_view"))
 
-# LOGOUT
+
 @app.route("/logout")
 def logout():
     session.pop("user_email", None)
     flash("Logged out successfully", "success")
     return redirect(url_for("login"))
 
-# ----------------------------
+
+# ================================
 # RUNNING IN THE 90s
-# ----------------------------
+# ================================
 if __name__ == "__main__":
-    app.run(debug=True)
+    # debug=True is ok on Render for initial testing
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
