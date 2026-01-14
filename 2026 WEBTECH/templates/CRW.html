@@ -15,7 +15,7 @@
     }
 
     .overlay {
-        background: rgba(0,0,0,0.78);
+        background: rgba(0,0,0,0.75);
         min-height: 100vh;
         padding: 20px;
     }
@@ -26,21 +26,6 @@
         padding: 14px;
         border-radius: 12px;
         box-shadow: 0 0 15px black;
-        letter-spacing: 1px;
-    }
-
-    .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .topbar a {
-        color: cyan;
-        text-decoration: none;
-        font-weight: bold;
-        font-size: 15px;
     }
 
     .cards {
@@ -51,29 +36,16 @@
     }
 
     .card {
-        background: rgba(15,15,15,0.92);
+        background: rgba(10,10,10,0.92);
         padding: 15px;
         border-radius: 14px;
         box-shadow: 0 0 15px black;
-        transition: 0.2s;
-    }
-
-    .card:hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 20px black;
     }
 
     img {
         width: 100%;
         border-radius: 12px;
         margin-top: 10px;
-        box-shadow: 0 0 10px black;
-    }
-
-    .meta {
-        font-size: 14px;
-        opacity: 0.9;
-        margin-bottom: 4px;
     }
 
     textarea {
@@ -83,7 +55,6 @@
         background: #0f0f0f;
         color: white;
         border: 1px solid #555;
-        resize: vertical;
     }
 
     button {
@@ -95,18 +66,6 @@
         cursor: pointer;
         background: linear-gradient(135deg, cyan, #00aaff);
         font-weight: bold;
-        letter-spacing: 0.5px;
-    }
-
-    button:hover {
-        opacity: 0.85;
-    }
-
-    .footer {
-        text-align: center;
-        margin-top: 40px;
-        opacity: 0.6;
-        font-size: 13px;
     }
 </style>
 </head>
@@ -114,23 +73,17 @@
 <body>
 <div class="overlay">
 
-<div class="topbar">
-    <a href="{{ url_for('register') }}">⬅ Back to Register</a>
-    <div>CRW BoardView</div>
-</div>
-
 <h1>📷 Camera Records BoardView</h1>
 
 <div class="cards">
-
 {% for camera in cameras %}
 <div class="card">
 
     <h3>{{ camera['CameraBrand'] }} {{ camera['CameraModel'] }}</h3>
 
-    <div class="meta">Type: {{ camera['CameraType'] }}</div>
-    <div class="meta">Email: {{ camera['email'] }}</div>
-    <div class="meta">Date: {{ camera['year_date'] }}</div>
+    <p>Type: {{ camera['CameraType'] }}</p>
+    <p>Email: {{ camera['email'] }}</p>
+    <p>Date: {{ camera['year_date'] }}</p>
 
     {% if camera['photo'] %}
         <img src="{{ url_for('static', filename=camera['photo']) }}">
@@ -146,14 +99,8 @@
 
 </div>
 {% endfor %}
-
-</div>
-
-<div class="footer">
-    Camera Records Web • BoardView Module
 </div>
 
 </div>
 </body>
 </html>
-
