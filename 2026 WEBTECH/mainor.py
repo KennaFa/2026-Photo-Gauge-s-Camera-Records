@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 import shutil
 
 # ================================
-# CONFIGURATION
+# CONFIG
 # ================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TMP_DIR = "/tmp"  # Render writable folder
@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.secret_key = "camera_secret_key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Ensure upload folder exists
+# Ensure folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
@@ -31,7 +31,7 @@ def create_connection():
     return conn
 
 def initialize_database():
-    """Create the cameras table if it doesn't exist."""
+    """Create the cameras table if it doesn't exist and copy local DB if needed."""
     if not os.path.exists(DB_FILE):
         local_db = os.path.join(BASE_DIR, "cameralite3.db")
         if os.path.exists(local_db):
@@ -65,7 +65,6 @@ def migrate_database():
     conn.commit()
     conn.close()
 
-# Initialize DB at startup
 initialize_database()
 migrate_database()
 
@@ -206,19 +205,27 @@ def cards_view():
     conn.close()
     return render_template("CRW.html", cameras=cameras)
 
-# UPDATE DESCRIPTION
+# UPDATE DESCRIPTION (FIXED INTERNAL SERVER ERROR)
 @app.route("/update_description/<int:id>", methods=["POST"])
 def update_description(id):
-    new_desc = request.form.get("description", "")
-    conn = create_connection()
+    new_desc = request.form.get("description", "").strip()
+
+    if not new_desc:
+        flash("Description cannot be empty!", "danger")
+        return redirect(url_for("cards_view"))
+
     try:
+        conn = create_connection()
         conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
         conn.commit()
         flash("Description updated!", "success")
+    except sqlite3.OperationalError as e:
+        flash(f"Database error: {e}", "danger")
     except Exception as e:
-        flash(f"Error updating description: {e}", "danger")
+        flash(f"Unexpected error: {e}", "danger")
     finally:
         conn.close()
+
     return redirect(url_for("cards_view"))
 
 # LOGOUT
