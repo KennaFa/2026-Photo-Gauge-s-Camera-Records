@@ -59,10 +59,6 @@ Biñan Esplanade, Laguna
         <h2 class="main-header">Camera Records BoardView</h2>
     </div>
 
-    <div class="mb-3 text-end">
-        <a href="{{ url_for('register') }}" class="btn btn-dark-custom">📝 Add/Edit Camera</a>
-    </div>
-
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="mb-3">
@@ -101,5 +97,12 @@ Biñan Esplanade, Laguna
     {% endfor %}
 </div>
 
+<!-- BOTTOM LEFT RETURN BUTTON -->
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 999;">
+    <a href="{{ url_for('login') }}" class="btn btn-dark-custom">
+        🔙 Back to Login
+    </a>
+</div>
+
 </body>
-</html>
+                        </html>
