@@ -6,11 +6,10 @@ from werkzeug.utils import secure_filename
 import shutil
 
 # ================================
-# CONFIG
+# CONFIGURATION
 # ================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TMP_DIR = "/tmp"  # Render writable folder
-DB_FILE = os.path.join(TMP_DIR, "cameralite3.db")
+TMP_DB = os.path.join("/tmp", "cameralite3.db")  # Render writable folder
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
@@ -20,42 +19,43 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(TMP_DIR, exist_ok=True)
+os.makedirs("/tmp", exist_ok=True)
 
 # ================================
 # DATABASE FUNCTIONS
 # ================================
 def create_connection():
-    conn = sqlite3.connect(DB_FILE)
+    if not os.path.exists(TMP_DB):
+        raise RuntimeError("Database not found!")
+    conn = sqlite3.connect(TMP_DB)
     conn.row_factory = sqlite3.Row
     return conn
 
 def initialize_database():
-    """Create the cameras table if it doesn't exist and copy local DB if needed."""
-    if not os.path.exists(DB_FILE):
+    """Create the cameras table if it doesn't exist."""
+    if not os.path.exists(TMP_DB):
         local_db = os.path.join(BASE_DIR, "cameralite3.db")
         if os.path.exists(local_db):
-            shutil.copy(local_db, DB_FILE)
-
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cameras (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            CameraBrand TEXT NOT NULL,
-            CameraModel TEXT NOT NULL,
-            CameraType TEXT NOT NULL,
-            email TEXT NOT NULL,
-            year_date TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            photo TEXT DEFAULT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+            shutil.copy(local_db, TMP_DB)
+        else:
+            conn = sqlite3.connect(TMP_DB)
+            conn.execute("""
+                CREATE TABLE cameras (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    CameraBrand TEXT NOT NULL,
+                    CameraModel TEXT NOT NULL,
+                    CameraType TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    year_date TEXT NOT NULL,
+                    description TEXT DEFAULT '',
+                    photo TEXT DEFAULT NULL
+                )
+            """)
+            conn.commit()
+            conn.close()
 
 def migrate_database():
-    """Add photo column if it doesn't exist."""
+    """Add photo column if missing."""
     conn = create_connection()
     cursor = conn.cursor()
     try:
@@ -65,6 +65,7 @@ def migrate_database():
     conn.commit()
     conn.close()
 
+# Initialize DB
 initialize_database()
 migrate_database()
 
@@ -105,7 +106,8 @@ def login():
 
     return render_template("login.html")
 
-# REGISTER / MAIN PAGE (ADD OR EDIT CAMERA)
+
+# REGISTER / MAIN PAGE
 @app.route("/rgstr", methods=["GET", "POST"])
 def register():
     conn = create_connection()
@@ -135,12 +137,10 @@ def register():
             return redirect(url_for("register"))
 
         cursor = conn.cursor()
-
         if cid:  # edit
             if "user_email" not in session:
                 flash("Login required to edit records", "danger")
                 return redirect(url_for("login"))
-
             if photo_filename:
                 cursor.execute("""
                     UPDATE cameras
@@ -165,10 +165,10 @@ def register():
 
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
-
     return render_template("pager.html", cameras=cameras, edit=None)
 
-# EDIT CAMERA (LOGIN REQUIRED)
+
+# EDIT CAMERA
 @app.route("/edit/<int:id>")
 def edit_camera(id):
     if "user_email" not in session:
@@ -179,10 +179,10 @@ def edit_camera(id):
     edit = conn.execute("SELECT * FROM cameras WHERE id=?", (id,)).fetchone()
     cameras = conn.execute("SELECT * FROM cameras ORDER BY id").fetchall()
     conn.close()
-
     return render_template("pager.html", cameras=cameras, edit=edit)
 
-# DELETE CAMERA (LOGIN REQUIRED)
+
+# DELETE CAMERA
 @app.route("/delete/<int:id>")
 def delete_camera(id):
     if "user_email" not in session:
@@ -193,9 +193,9 @@ def delete_camera(id):
     conn.execute("DELETE FROM cameras WHERE id=?", (id,))
     conn.commit()
     conn.close()
-
     flash("Camera deleted successfully!", "success")
     return redirect(url_for("register"))
+
 
 # CARDS VIEW
 @app.route("/CRW")
@@ -205,11 +205,11 @@ def cards_view():
     conn.close()
     return render_template("CRW.html", cameras=cameras)
 
-# UPDATE DESCRIPTION (FIXED INTERNAL SERVER ERROR)
+
+# UPDATE DESCRIPTION
 @app.route("/update_description/<int:id>", methods=["POST"])
 def update_description(id):
     new_desc = request.form.get("description", "").strip()
-
     if not new_desc:
         flash("Description cannot be empty!", "danger")
         return redirect(url_for("cards_view"))
@@ -219,14 +219,13 @@ def update_description(id):
         conn.execute("UPDATE cameras SET description=? WHERE id=?", (new_desc, id))
         conn.commit()
         flash("Description updated!", "success")
-    except sqlite3.OperationalError as e:
-        flash(f"Database error: {e}", "danger")
     except Exception as e:
-        flash(f"Unexpected error: {e}", "danger")
+        flash(f"Internal Server Error: {e}", "danger")
     finally:
         conn.close()
 
     return redirect(url_for("cards_view"))
+
 
 # LOGOUT
 @app.route("/logout")
@@ -234,6 +233,7 @@ def logout():
     session.pop("user_email", None)
     flash("Logged out successfully", "success")
     return redirect(url_for("login"))
+
 
 # ================================
 # RUN APP
